@@ -1,0 +1,15 @@
+[package]
+name = "peel"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Take apart every archive and compressed file under a folder, layer by layer, with 7-Zip and binwalk"
+license = "MIT"
+publish = false
+
+[dependencies]
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

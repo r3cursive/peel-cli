@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install test tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y attr bzip2 xz-utils zstd
+
+      - name: Install 7-Zip 26.06 (upstream, hash-checked)
+        run: |
+          curl -fsSLo 7z.tar.xz https://github.com/ip7z/7zip/releases/download/26.06/7z2606-linux-x64.tar.xz
+          echo "2b539cf067b2ad48e1baa5093dbaa8818b73542d1222a0ffde9dc5f2922ea62e  7z.tar.xz" | sha256sum -c -
+          mkdir 7zip
+          tar -xJf 7z.tar.xz -C 7zip
+          sudo install -m 755 "$(find 7zip -type f -name 7zz | head -n 1)" /usr/local/bin/7zz
+          sudo ln -sf /usr/local/bin/7zz /usr/local/bin/7z
+          7z | head -n 3
+
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy,rustfmt
+          rustup default stable
+
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+        env:
+          # The speed test's 5 s budget is for a fast workstation (about 0.4 s
+          # there); a 4-vCPU runner took 6.1 s for the same commit.
+          PEEL_PERF_BUDGET_SECS: "20"
